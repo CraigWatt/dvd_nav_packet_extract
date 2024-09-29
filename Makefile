@@ -41,7 +41,11 @@ check_libdvdread:
 		echo "libdvdread is missing, cloning from repository..."; \
 		git clone $(LIBDVDREAD_REPO) $(LOCAL_LIBS)/libdvdread; \
 	fi
-	@cd $(LOCAL_LIBS)/libdvdread && autoreconf -i && ./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdread && make || { echo "Failed to build libdvdread"; exit 1; }
+	@cd $(LOCAL_LIBS)/libdvdread && autoreconf -i && \
+	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdread \
+	--with-libdvdcss-lib=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/lib \
+	--with-libdvdcss-includes=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/include \
+	&& make || { echo "Failed to build libdvdread"; exit 1; }
 
 # Check all libraries
 .PHONY: check_libraries
