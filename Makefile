@@ -1,76 +1,96 @@
-# Detect the operating system
-UNAME := $(shell uname -s)
-ARCH := $(shell uname -m)
+# Variables
+LIBDVDNAV_REPO = https://code.videolan.org/videolan/libdvdnav.git
+LIBDVDCSS_REPO = https://code.videolan.org/videolan/libdvdcss.git
+LIBDVDREAD_REPO = https://code.videolan.org/videolan/libdvdread.git
+LOCAL_LIBS = local_libs
 
-# Default values
-CC = clang
-CFLAGS = 
-LDFLAGS = 
-TARGET = extractor
-SRC = extractor.c
+# Project Name
+TARGET = dvdnavtex
 
-# Detect OS and architecture
-ifeq ($(UNAME), Darwin)  # macOS
-    ifeq ($(ARCH), arm64)  # macOS (M1/ARM)
-        CFLAGS += -I/opt/homebrew/include
-        LDFLAGS += -L/opt/homebrew/lib -lvlc -ldvdnav
-    else  # macOS (Intel/x86)
-        CFLAGS += -I/usr/local/include
-        LDFLAGS += -L/usr/local/lib -lvlc -ldvdnav
-    endif
-endif
+# Check for required tools
+.PHONY: check_tools
+check_tools:
+	@command -v autoconf >/dev/null 2>&1 || { echo "Autoconf is required but not installed. Install via Homebrew: brew install autoconf"; exit 1; }
+	@command -v automake >/dev/null 2>&1 || { echo "Automake is required but not installed. Install via Homebrew: brew install automake"; exit 1; }
+	@command -v clang >/dev/null 2>&1 || { echo "clang is required but not installed. Aborting."; exit 1; }
+	@command -v git >/dev/null 2>&1 || { echo "git is required but not installed. Aborting."; exit 1; }
+	@command -v pkg-config >/dev/null 2>&1 || { echo "pkg-config is required but not installed. Aborting."; exit 1; }
 
-ifeq ($(UNAME), Linux)
-    CFLAGS += -I/usr/include
-    LDFLAGS += -L/usr/lib -lvlc -ldvdnav
-endif
-
-# For Windows, check for MSYS or MinGW environment
-ifeq ($(UNAME), MINGW32_NT)  # Windows 32-bit
-    CFLAGS += -IC:/path/to/vlc/include
-    LDFLAGS += -LC:/path/to/vlc/lib -lvlc -ldvdnav
-endif
-
-ifeq ($(UNAME), MINGW64_NT)  # Windows 64-bit
-    CFLAGS += -IC:/path/to/vlc/include
-    LDFLAGS += -LC:/path/to/vlc/lib -lvlc -ldvdnav
-endif
-
-# Install dependencies based on the operating system
-install:
-ifeq ($(UNAME), Darwin)
-	@if [ "$(ARCH)" = "arm64" ]; then \
-		echo "Installing dependencies for macOS (M1/ARM)..."; \
-		brew install vlc libdvdnav; \
-	else \
-		echo "Installing dependencies for macOS (Intel/x86)..."; \
-		brew install vlc libdvdnav; \
+# Clone and build libdvdnav
+.PHONY: check_libdvdnav
+check_libdvdnav:
+	@if [ ! -d $(LOCAL_LIBS)/libdvdnav ]; then \
+		echo "libdvdnav is missing, cloning from repository..."; \
+		git clone $(LIBDVDNAV_REPO) $(LOCAL_LIBS)/libdvdnav; \
 	fi
-endif
+	@cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && ./configure && make || { echo "Failed to build libdvdnav"; exit 1; }
 
-ifeq ($(UNAME), Linux)
-	@echo "Installing dependencies for Linux..."; \
-	sudo apt-get install -y vlc libvlc-dev libdvdnav-dev
-endif
+# Clone and build libdvdcss
+.PHONY: check_libdvdcss
+check_libdvdcss:
+	@if [ ! -d $(LOCAL_LIBS)/libdvdcss ]; then \
+		echo "libdvdcss is missing, cloning from repository..."; \
+		git clone $(LIBDVDCSS_REPO) $(LOCAL_LIBS)/libdvdcss; \
+	fi
+	@cd $(LOCAL_LIBS)/libdvdcss && autoreconf -i && ./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss && make && make install || { echo "Failed to build libdvdcss"; exit 1; }
 
-ifeq ($(UNAME), MINGW32_NT)
-	@echo "Please manually install VLC and libdvdnav for Windows 32-bit."
-endif
+# Clone and build libdvdread
+.PHONY: check_libdvdread
+check_libdvdread:
+	@if [ ! -d $(LOCAL_LIBS)/libdvdread ]; then \
+		echo "libdvdread is missing, cloning from repository..."; \
+		git clone $(LIBDVDREAD_REPO) $(LOCAL_LIBS)/libdvdread; \
+	fi
+	@cd $(LOCAL_LIBS)/libdvdread && autoreconf -i && ./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdread && make || { echo "Failed to build libdvdread"; exit 1; }
 
-ifeq ($(UNAME), MINGW64_NT)
-	@echo "Please manually install VLC and libdvdnav for Windows 64-bit."
-endif
+# Check all libraries
+.PHONY: check_libraries
+check_libraries: check_libdvdnav check_libdvdcss check_libdvdread
 
-# Default target: build the executable
-all: $(TARGET)
-
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC) $(LDFLAGS)
-
-# Clean up the build artifacts
+# Clean the build
+.PHONY: clean
 clean:
-	rm -f $(TARGET)
+	@echo "Cleaning up..."
+	@rm -f $(TARGET)
+	@rm -rf local_libs
 
-# Run the program (usage: make run VOB_PATH=/path/to/file.vob)
-run: $(TARGET)
-	./$(TARGET) $(VOB_PATH)
+# Build the project
+.PHONY: build
+build: check_tools check_libraries
+	@echo "Building the project..."
+	@echo "Checking if extractor.c exists..."
+	@if [ -f extractor.c ]; then \
+		echo "extractor.c found. Proceeding to compile..."; \
+	else \
+		echo "extractor.c not found! Aborting build."; \
+		exit 1; \
+	fi
+	@echo "Compiling with flags and linking..."
+	@{ clang -g \
+	      -I./local_libs/libdvdnav/src \
+	      -I./local_libs/libdvdnav/src/dvdnav \
+	      -I./local_libs/libdvdread/src \
+	      -I./local_libs/libdvdcss/include \
+	      -L./local_libs/libdvdnav/.libs \
+	      -L./local_libs/libdvdcss/lib \
+	      -L./local_libs/libdvdread/.libs \
+	      -ldvdnav -ldvdcss -ldvdread -o $(TARGET) extractor.c; } || { echo "Compilation failed"; exit 1; }
+
+# Run the program
+.PHONY: run
+run:
+	@read -p "Enter path to VOB file: " vob_path; \
+	echo "Setting DYLD_LIBRARY_PATH..."; \
+	export DYLD_LIBRARY_PATH=$(LOCAL_LIBS)/libdvdnav/.libs:$(LOCAL_LIBS)/libdvdcss/lib:$(LOCAL_LIBS)/libdvdread/.libs; \
+	echo "Running the program with path: $$vob_path"; \
+	./$(TARGET) "$$vob_path"
+
+# Reminder to install Lua (optional)
+.PHONY: lua_reminder
+lua_reminder:
+	@echo "Reminder: Lua may be needed for certain scripts. Install via Homebrew: brew install lua"
+
+# Reminder to install or upgrade Bison (optional)
+.PHONY: bison_reminder
+bison_reminder:
+	@echo "Reminder: You may need Bison for parsing. Install via Homebrew: brew install bison"
