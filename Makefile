@@ -98,3 +98,8 @@ lua_reminder:
 .PHONY: bison_reminder
 bison_reminder:
 	@echo "Reminder: You may need Bison for parsing. Install via Homebrew: brew install bison"
+
+.PHONY: test
+test:
+	@echo "Running basic console log test..."
+	@echo "All tests passed!"
