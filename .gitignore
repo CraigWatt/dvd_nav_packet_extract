@@ -4,3 +4,5 @@ dvdnavtex*
 .DS_Store
 /results
 /results/*
+/local_libs
+/local_libs/*
