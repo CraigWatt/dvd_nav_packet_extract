@@ -46,6 +46,11 @@ jobs:
           # Pass include and library paths explicitly during build
           make build CFLAGS="$DVDREAD_CFLAGS" LDFLAGS="$DVDREAD_LIBS"
 
+      # Output config.log for debugging if the build fails
+      - name: Output config.log for debugging
+        if: failure()
+        run: cat local_libs/libdvdnav/config.log
+
       # Run tests (replace this step with actual test command if needed)
       - name: Run tests
         run: make test # Replace this with your actual test command if applicable
