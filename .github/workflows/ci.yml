@@ -1,106 +1,102 @@
-name: Build and Test dvd_nav_packet_extract
+name: Build and Package dvd_nav_packet_extract
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
-    name: Build and Test on macos-latest
+    name: 👷 Build files for packaging
     runs-on: macos-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v3.3.0
 
-      # Ensure Xcode command line tools are installed
-      - name: Install Xcode Command Line Tools
-        run: |
-          xcode-select --install || true
-          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+      - name: 🏗️ Build application
+        run: make
 
-      # Set up dependencies on macOS
-      - name: Set up dependencies on macOS
-        run: |
-          brew update
-          brew install autoconf automake libtool pkg-config git llvm
+      - name: 💭 Cache application
+        uses: actions/cache@v3.2.2
+        id: dvdnavtex-build
+        with:
+          path: |
+            ./dvdnavtex
+          key: ${{ github.sha }}
 
-      # Build libdvdread first and ensure it is built correctly
-      - name: Build libdvdread
-        run: |
-          # Clone and build libdvdread
-          if [ ! -d local_libs/libdvdread ]; then
-            git clone https://code.videolan.org/videolan/libdvdread.git local_libs/libdvdread
-          fi
-          cd local_libs/libdvdread
-          autoreconf -i
-          ./configure
-          make
-          cd ../../
-          
-          # Check if libdvdread was built successfully
-          ls -la local_libs/libdvdread/.libs || { echo "libdvdread build failed or .libs directory missing"; exit 1; }
+  apple-pkg:
+    name: 👷 Setup macOS .pkg
+    runs-on: macos-latest
+    timeout-minutes: 5
+    needs: [build]
+    
+    steps:
+    - name: ⬇️ Checkout repo
+      uses: actions/checkout@v3.3.0
 
-      # Build libdvdnav
-      - name: Build libdvdnav
-        run: |
-          # Ensure pkg-config knows where to find libdvdread in local_libs
-          export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/.libs/pkgconfig
-          
-          # Set DVDREAD_CFLAGS and DVDREAD_LIBS to tell where to find libdvdread
-          export DVDREAD_CFLAGS="-I$(pwd)/local_libs/libdvdread/src"
-          export DVDREAD_LIBS="-L$(pwd)/local_libs/libdvdread/.libs -ldvdread"
-          
-          # Use clang as the C compiler
-          export CC=clang
-          export CXX=clang++
-          
-          # Build libdvdnav
-          if [ ! -d local_libs/libdvdnav ]; then
-            git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
-          fi
-          cd local_libs/libdvdnav
-          autoreconf -i
-          ./configure
-          make
-          cd ../../
-          
-          # Check if libdvdnav was built successfully
-          ls -la local_libs/libdvdnav/.libs || { echo "libdvdnav build failed or .libs directory missing"; exit 1; }
+    - name: ❓ Is brew installed
+      run: brew -v
+      
+    - name: 🔨 Install xmlstarlet
+      run: brew install xmlstarlet
+      
+    - name: 🔨 Install python
+      run: brew install python
 
-      # Output config.log for debugging if the build fails
-      - name: Output config.log for debugging
-        if: failure()
-        run: cat local_libs/libdvdnav/config.log
+    - name: 🤌💭 Fetch application cache
+      uses: actions/cache@v3.2.2
+      id: dvdnavtex-build
+      with:
+        path: |
+            ./dvdnavtex
+        key: ${{ github.sha }}
 
-      # Run tests (replace this step with actual test command if needed)
-      - name: Run tests
-        run: make test # Replace this with your actual test command if applicable
+    - name: ✍️ ReWrite version string in build-info.plist from tag
+      run: |
+        xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
+
+    - name: 🫳 Position application to payload
+      run: |
+        mkdir -p munki-pkg-workspace/payload/usr/local/bin
+        cp dvdnavtex munki-pkg-workspace/payload/usr/local/bin/
+
+    - name: Run munkipkg 🧙‍♂️📦
+      id: munkipkg
+      uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
+      with:
+        pkg_subdir: "munki-pkg-workspace"
+    
+    - name: 💭 Cache .pkg
+      uses: actions/cache@v3.2.2
+      id: macos-pkg
+      with:
+        path: |
+          ./munki-pkg-workspace/build/*
+        key: ${{ github.sha }}
 
   release:
-    name: Create Release
+    name: 📦 Release
+    needs: [apple-pkg]
     runs-on: macos-latest
-    needs: build
-    if: github.event_name == 'push' && contains(github.ref, 'tags')
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: ⬇️ Checkout repo
+      uses: actions/checkout@v3.3.0
 
-      - name: Set up GitHub CLI
-        run: |
-          brew install gh
-          gh auth login --with-token ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create release
-        run: gh release create ${{ github.ref }} --notes "Release notes here"
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: dvd_nav_packet_extract-${{ github.ref }}
-          path: ./path/to/your/build/artifacts
+    - name: 🤌💭 Fetch macOS .pkg Cache
+      uses: actions/cache@v3.2.2
+      id: macos-pkg
+      with:
+        path: |
+          ./munki-pkg-workspace/build/*
+        key: ${{ github.sha }}
+  
+    - name: 👷📦 Release static builds & macOS pkg
+      uses: softprops/action-gh-release@v0.1.15
+      with:
+        generate_release_notes: true
+        files: |
+          ./munki-pkg-workspace/build/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
