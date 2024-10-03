@@ -31,9 +31,46 @@ jobs:
           brew update
           brew install autoconf automake libtool pkg-config git llvm
 
-      # Build dvdnavtex application
-      - name: 🏗️ Build dvdnavtex
-        run: make build
+      # Build libdvdread first and ensure it is built correctly
+      - name: Build libdvdread
+        run: |
+          # Clone and build libdvdread
+          if [ ! -d local_libs/libdvdread ]; then
+            git clone https://code.videolan.org/videolan/libdvdread.git local_libs/libdvdread
+          fi
+          cd local_libs/libdvdread
+          autoreconf -i
+          ./configure --prefix=$(pwd)
+          make
+          cd ../../
+          
+          # Check if libdvdread was built successfully
+          ls -la local_libs/libdvdread/.libs || { echo "libdvdread build failed or .libs directory missing"; exit 1; }
+
+      # Build libdvdnav and link it with libdvdread
+      - name: Build libdvdnav
+        run: |
+          # Set the correct environment variables to ensure libdvdread is found
+          export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/.libs/pkgconfig
+          export DVDREAD_CFLAGS="-I$(pwd)/local_libs/libdvdread/src"
+          export DVDREAD_LIBS="-L$(pwd)/local_libs/libdvdread/.libs -ldvdread"
+
+          # Use clang as the C compiler
+          export CC=clang
+          export CXX=clang++
+
+          # Build libdvdnav
+          if [ ! -d local_libs/libdvdnav ]; then
+            git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
+          fi
+          cd local_libs/libdvdnav
+          autoreconf -i
+          ./configure --prefix=$(pwd) --with-dvdread-libs=$(pwd)/../libdvdread/.libs --with-dvdread-includes=$(pwd)/../libdvdread/src
+          make
+          cd ../../
+
+          # Check if libdvdnav was built successfully
+          ls -la local_libs/libdvdnav/.libs || { echo "libdvdnav build failed or .libs directory missing"; exit 1; }
 
       # Debug the build output to verify the binary location
       - name: Debug List files in project directory
