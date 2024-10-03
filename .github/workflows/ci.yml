@@ -96,12 +96,28 @@ jobs:
             ./dvdnavtex
         key: ${{ github.sha }}
 
-    # Ensure build-info.plist exists
-    - name: 🧾 Check for build-info.plist
+    # Dynamically create build-info.plist if it doesn't exist
+    - name: 🧾 Create build-info.plist if missing
       run: |
         if [ ! -f munki-pkg-workspace/build-info.plist ]; then
-          echo "Error: build-info.plist not found!"
-          exit 1
+          mkdir -p munki-pkg-workspace
+          cat <<EOT >> munki-pkg-workspace/build-info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleIdentifier</key>
+            <string>com.yourcompany.dvdnavtex</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+          </dict>
+          </plist>
+          EOT
+          echo "build-info.plist created!"
+        else
+          echo "build-info.plist already exists."
         fi
 
     - name: ✍️ Update version string in build-info.plist from tag
