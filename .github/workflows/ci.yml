@@ -96,6 +96,14 @@ jobs:
             ./dvdnavtex
         key: ${{ github.sha }}
 
+    # Ensure build-info.plist exists
+    - name: 🧾 Check for build-info.plist
+      run: |
+        if [ ! -f munki-pkg-workspace/build-info.plist ]; then
+          echo "Error: build-info.plist not found!"
+          exit 1
+        fi
+
     - name: ✍️ Update version string in build-info.plist from tag
       run: |
         xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
