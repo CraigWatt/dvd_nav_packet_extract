@@ -31,38 +31,19 @@ jobs:
           brew update
           brew install autoconf automake libtool pkg-config git llvm
 
-      # Build libdvdread first and ensure it is built correctly
-      - name: Build libdvdread
-        run: |
-          if [ ! -d local_libs/libdvdread ]; then
-            git clone https://code.videolan.org/videolan/libdvdread.git local_libs/libdvdread
-          fi
-          cd local_libs/libdvdread
-          autoreconf -i
-          ./configure
-          make
-          cd ../../
-          ls -la local_libs/libdvdread/.libs || { echo "libdvdread build failed or .libs directory missing"; exit 1; }
+      # Build the application (make sure this step outputs `dvdnavtex`)
+      - name: 🏗️ Build dvdnavtex
+        run: make build
 
-      # Build libdvdnav
-      - name: Build libdvdnav
+      # Verify that the binary was created successfully
+      - name: Verify binary creation
         run: |
-          export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/.libs/pkgconfig
-          export DVDREAD_CFLAGS="-I$(pwd)/local_libs/libdvdread/src"
-          export DVDREAD_LIBS="-L$(pwd)/local_libs/libdvdread/.libs -ldvdread"
-          export CC=clang
-          export CXX=clang++
-          if [ ! -d local_libs/libdvdnav ]; then
-            git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
+          if [ ! -f dvdnavtex ]; then
+            echo "dvdnavtex binary not found! Build failed."
+            exit 1
           fi
-          cd local_libs/libdvdnav
-          autoreconf -i
-          ./configure
-          make
-          cd ../../
-          ls -la local_libs/libdvdnav/.libs || { echo "libdvdnav build failed or .libs directory missing"; exit 1; }
 
-      # Cache application build
+      # Cache the build output
       - name: 💭 Cache application
         uses: actions/cache@v3.2.2
         id: dvdnavtex-build
