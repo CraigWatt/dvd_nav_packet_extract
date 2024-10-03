@@ -26,8 +26,14 @@ jobs:
       # Build the project
       - name: Build the project
         run: |
-          # Set the PKG_CONFIG_PATH to include local_libs for libdvdread and libdvdnav
-          export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/.libs/pkgconfig:$(pwd)/local_libs/libdvdnav/.libs/pkgconfig
+          # Ensure pkg-config knows where to find libdvdread in local_libs
+          export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/.libs/pkgconfig
+          
+          # Set DVDREAD_CFLAGS and DVDREAD_LIBS to tell where to find libdvdread
+          export DVDREAD_CFLAGS="-I$(pwd)/local_libs/libdvdread/src"
+          export DVDREAD_LIBS="-L$(pwd)/local_libs/libdvdread/.libs -ldvdread"
+          
+          # Now, build the project
           make build
 
       # Run tests (replace this step with actual test command if needed)
