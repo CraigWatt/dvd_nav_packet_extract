@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    name: 👷 Build files for packaging
+    name: 👷 Build and Test dvd_nav_packet_extract
     runs-on: macos-latest
 
     steps:
@@ -31,53 +31,28 @@ jobs:
           brew update
           brew install autoconf automake libtool pkg-config git llvm
 
-      # Build libdvdread and ensure it is built correctly
-      - name: Build libdvdread
-        run: |
-          # Clone and build libdvdread
-          if [ ! -d local_libs/libdvdread ]; then
-            git clone https://code.videolan.org/videolan/libdvdread.git local_libs/libdvdread
-          fi
-          cd local_libs/libdvdread
-          autoreconf -i
-          ./configure
-          make
-          cd ../../
-          
-          # Check if libdvdread was built successfully
-          ls -la local_libs/libdvdread/.libs || { echo "libdvdread build failed or .libs directory missing"; exit 1; }
+      # Build dvdnavtex application
+      - name: 🏗️ Build dvdnavtex
+        run: make build
 
-      # Build libdvdnav and ensure it knows where libdvdread is located
-      - name: Build libdvdnav
+      # Debug the build output to verify the binary location
+      - name: Debug List files in project directory
+        run: ls -la
+
+      - name: Debug List files in local_libs directory
+        run: ls -la local_libs
+
+      # Check if the binary was created in multiple potential locations
+      - name: Verify binary creation
         run: |
-          # Ensure pkg-config knows where to find libdvdread in local_libs
-          export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/.libs/pkgconfig
-          
-          # Set DVDREAD_CFLAGS and DVDREAD_LIBS to tell where to find libdvdread
-          export DVDREAD_CFLAGS="-I$(pwd)/local_libs/libdvdread/src"
-          export DVDREAD_LIBS="-L$(pwd)/local_libs/libdvdread/.libs -ldvdread"
-          
-          # Debug environment variables
-          echo "DVDREAD_CFLAGS is set to: $DVDREAD_CFLAGS"
-          echo "DVDREAD_LIBS is set to: $DVDREAD_LIBS"
-          echo "PKG_CONFIG_PATH is set to: $PKG_CONFIG_PATH"
-          
-          # Use clang as the C compiler
-          export CC=clang
-          export CXX=clang++
-          
-          # Clone and build libdvdnav
-          if [ ! -d local_libs/libdvdnav ]; then
-            git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
+          if [ -f ./dvdnavtex ]; then
+            echo "dvdnavtex binary found in project root!"
+          elif [ -f ./local_libs/dvdnavtex ]; then
+            echo "dvdnavtex binary found in local_libs directory!"
+          else
+            echo "dvdnavtex binary not found!"
+            exit 1
           fi
-          cd local_libs/libdvdnav
-          autoreconf -i
-          ./configure || { cat config.log; exit 1; }
-          make
-          cd ../../
-          
-          # Check if libdvdnav was built successfully
-          ls -la local_libs/libdvdnav/.libs || { echo "libdvdnav build failed or .libs directory missing"; exit 1; }
 
       # Cache the build output
       - name: 💭 Cache application
@@ -98,57 +73,51 @@ jobs:
     - name: ⬇️ Checkout repo
       uses: actions/checkout@v3.3.0
 
+    # Ensure Homebrew is installed
     - name: ❓ Check for Homebrew
       run: brew -v
 
+    # Install required packages
     - name: 🔨 Install xmlstarlet and python (if needed)
       run: |
         brew install xmlstarlet python
 
+    # Fetch application cache (verify if binary is retrieved)
     - name: 🤌💭 Fetch application cache
       uses: actions/cache@v3.2.2
       id: dvdnavtex-build
       with:
-        path: |
-            ./dvdnavtex
+        path: ./dvdnavtex
         key: ${{ github.sha }}
 
-    # Dynamically create build-info.plist if it doesn't exist
-    - name: 🧾 Create build-info.plist if missing
+    # Check if cache fetched the dvdnavtex binary correctly
+    - name: Verify binary fetched from cache
       run: |
-        if [ ! -f munki-pkg-workspace/build-info.plist ]; then
-          mkdir -p munki-pkg-workspace
-          echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-          <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
-          <plist version=\"1.0\">
-          <dict>
-            <key>CFBundleIdentifier</key>
-            <string>com.yourcompany.dvdnavtex</string>
-            <key>CFBundleShortVersionString</key>
-            <string>1.0</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-          </dict>
-          </plist>" > munki-pkg-workspace/build-info.plist
-          echo "build-info.plist created!"
+        if [ ! -f ./dvdnavtex ]; then
+          echo "dvdnavtex binary not found after cache retrieval! Exiting..."
+          exit 1
         else
-          echo "build-info.plist already exists."
+          echo "dvdnavtex binary found after cache retrieval!"
         fi
 
+    # Update build-info.plist from tag
     - name: ✍️ Update version string in build-info.plist from tag
       run: |
         xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
 
+    # Copy binary to payload for packaging
     - name: 🫳 Position application to payload
       run: |
         mkdir -p munki-pkg-workspace/payload/usr/local/bin
         cp dvdnavtex munki-pkg-workspace/payload/usr/local/bin/
 
+    # Run munkipkg for packaging
     - name: Run munkipkg 🧙‍♂️📦
       uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
       with:
         pkg_subdir: "munki-pkg-workspace"
     
+    # Cache the .pkg output
     - name: 💭 Cache .pkg
       uses: actions/cache@v3.2.2
       id: macos-pkg
@@ -166,6 +135,7 @@ jobs:
     - name: ⬇️ Checkout repo
       uses: actions/checkout@v3.3.0
 
+    # Fetch macOS .pkg cache
     - name: 🤌💭 Fetch macOS .pkg Cache
       uses: actions/cache@v3.2.2
       id: macos-pkg
@@ -174,7 +144,8 @@ jobs:
           ./munki-pkg-workspace/build/*
         key: ${{ github.sha }}
   
-    - name: 👷📦 Release macOS pkg
+    # Release the static build and macOS package
+    - name: 👷📦 Release static builds & macOS pkg
       uses: softprops/action-gh-release@v0.1.15
       with:
         generate_release_notes: true
