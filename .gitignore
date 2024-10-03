@@ -2,3 +2,5 @@ VTS*
 test
 dvdnavtex*
 .DS_Store
+/results
+/results/*
