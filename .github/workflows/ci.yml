@@ -17,6 +17,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Ensure Xcode command line tools are installed
+      - name: Install Xcode Command Line Tools
+        run: |
+          xcode-select --install || true
+          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+
       # Set up dependencies on macOS
       - name: Set up dependencies on macOS
         run: |
