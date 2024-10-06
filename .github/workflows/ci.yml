@@ -44,8 +44,6 @@ jobs:
           make install
           cd ../../
 
-          ls -la local_libs/libdvdcss/.libs || { echo "libdvdcss build failed or .libs directory missing"; exit 1; }
-
       # Build libdvdread
       - name: Build libdvdread
         run: |
@@ -61,52 +59,41 @@ jobs:
           make install
           cd ../../
 
-          ls -la local_libs/libdvdread/lib || { echo "libdvdread build failed or lib directory missing"; exit 1; }
-
-      # Build libdvdnav with enhanced logging and configure inspection
+      # Build libdvdnav
       - name: Build libdvdnav
         run: |
           export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/lib/pkgconfig
           export DYLD_LIBRARY_PATH=$(pwd)/local_libs/libdvdread/lib
 
-          # Clone libdvdnav if it doesn't exist
           if [ ! -d local_libs/libdvdnav ]; then
             git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
           fi
 
-          # Clean up old artifacts if any
+          # Apply necessary modifications to configure.ac
           cd local_libs/libdvdnav
-
-          # Reconfigure the build system
-          autoupdate || true  # Handle obsolete macros and capture logs
-          autoreconf -i || true  # Re-generate all the necessary files
-
-          # Inspect configure script around the error location
-          head -n 50 configure || true  # First 50 lines
-          tail -n 50 configure || true  # Last 50 lines
-
-          # Configure build with prefix
-          ./configure --prefix=$(pwd) || { echo "Configure step failed"; exit 1; }
-
-          # Verbose build to capture more logs
-          make V=1 || { echo "Make step failed"; exit 1; }
-
-          # Install the library
-          make install || { echo "Install step failed"; exit 1; }
-
+          
+          # Replace obsolete macro AC_PROG_CC_C99 with AC_PROG_CC
+          sed -i '' 's/AC_PROG_CC_C99/AC_PROG_CC/g' configure.ac
+          
+          # Run autoupdate to update obsolete macros
+          autoupdate || true
+          
+          # Regenerate configure script
+          autoreconf -i
+          
+          # Configure and build
+          ./configure --prefix=$(pwd)
+          make
+          make install
           cd ../../
 
-          # Check if the library was successfully built and installed
-          ls -la local_libs/libdvdnav/lib || { echo "libdvdnav build failed or lib directory missing"; exit 1; }
-
-      # Build the dvdnavtex binary
+      # Build the actual dvdnavtex binary
       - name: Build dvdnavtex binary
         run: |
-          make build  # Trigger the makefile build process
-          
+          make build
+
           # Ensure the binary exists
           ls -la dvdnavtex || { echo "dvdnavtex binary not found!"; exit 1; }
-
 
       # Cache the build output
       - name: 💭 Cache application
@@ -123,61 +110,61 @@ jobs:
     timeout-minutes: 5
 
     steps:
-    - name: ⬇️ Checkout repo
-      uses: actions/checkout@v3.3.0
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v3.3.0
 
-    # Ensure Homebrew is installed
-    - name: ❓ Check for Homebrew
-      run: brew -v
+      # Ensure Homebrew is installed
+      - name: ❓ Check for Homebrew
+        run: brew -v
 
-    # Install required packages
-    - name: 🔨 Install xmlstarlet and python
-      run: |
-        brew install xmlstarlet python
+      # Install required packages
+      - name: 🔨 Install xmlstarlet and python
+        run: |
+          brew install xmlstarlet python
 
-    # Fetch application cache
-    - name: 🤌💭 Fetch application cache
-      uses: actions/cache@v3.2.2
-      id: dvdnavtex-build
-      with:
-        path: ./dvdnavtex
-        key: ${{ github.sha }}
+      # Fetch application cache
+      - name: 🤌💭 Fetch application cache
+        uses: actions/cache@v3.2.2
+        id: dvdnavtex-build
+        with:
+          path: ./dvdnavtex
+          key: ${{ github.sha }}
 
-    # Verify binary fetched from cache
-    - name: Verify binary fetched from cache
-      run: |
-        if [ ! -f ./dvdnavtex ]; then
-          echo "dvdnavtex binary not found after cache retrieval! Exiting..."
-          exit 1
-        else
-          echo "dvdnavtex binary found after cache retrieval!"
-        fi
+      # Verify binary fetched from cache
+      - name: Verify binary fetched from cache
+        run: |
+          if [ ! -f ./dvdnavtex ]; then
+            echo "dvdnavtex binary not found after cache retrieval! Exiting..."
+            exit 1
+          else
+            echo "dvdnavtex binary found after cache retrieval!"
+          fi
 
-    # Update build-info.plist from tag
-    - name: ✍️ Update version string in build-info.plist from tag
-      run: |
-        xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
+      # Update build-info.plist from tag
+      - name: ✍️ Update version string in build-info.plist from tag
+        run: |
+          xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
 
-    # Copy binary to payload for packaging
-    - name: 🫳 Position application to payload
-      run: |
-        mkdir -p munki-pkg-workspace/payload/usr/local/bin
-        cp dvdnavtex munki-pkg-workspace/payload/usr/local/bin/
+      # Copy binary to payload for packaging
+      - name: 🫳 Position application to payload
+        run: |
+          mkdir -p munki-pkg-workspace/payload/usr/local/bin
+          cp dvdnavtex munki-pkg-workspace/payload/usr/local/bin/
 
-    # Run munkipkg for packaging
-    - name: Run munkipkg 🧙‍♂️📦
-      uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
-      with:
-        pkg_subdir: "munki-pkg-workspace"
+      # Run munkipkg for packaging
+      - name: Run munkipkg 🧙‍♂️📦
+        uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
+        with:
+          pkg_subdir: "munki-pkg-workspace"
 
-    # Cache the .pkg output
-    - name: 💭 Cache .pkg
-      uses: actions/cache@v3.2.2
-      id: macos-pkg
-      with:
-        path: |
-          ./munki-pkg-workspace/build/*
-        key: ${{ github.sha }}
+      # Cache the .pkg output
+      - name: 💭 Cache .pkg
+        uses: actions/cache@v3.2.2
+        id: macos-pkg
+        with:
+          path: |
+            ./munki-pkg-workspace/build/*
+          key: ${{ github.sha }}
 
   release:
     name: 📦 Release
@@ -185,24 +172,24 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: ⬇️ Checkout repo
-      uses: actions/checkout@v3.3.0
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v3.3.0
 
-    # Fetch macOS .pkg cache
-    - name: 🤌💭 Fetch macOS .pkg Cache
-      uses: actions/cache@v3.2.2
-      id: macos-pkg
-      with:
-        path: |
-          ./munki-pkg-workspace/build/*
-        key: ${{ github.sha }}
+      # Fetch macOS .pkg cache
+      - name: 🤌💭 Fetch macOS .pkg Cache
+        uses: actions/cache@v3.2.2
+        id: macos-pkg
+        with:
+          path: |
+            ./munki-pkg-workspace/build/*
+          key: ${{ github.sha }}
 
-    # Release the static build and macOS package
-    - name: 👷📦 Release static builds & macOS pkg
-      uses: softprops/action-gh-release@v0.1.15
-      with:
-        generate_release_notes: true
-        files: |
-          ./munki-pkg-workspace/build/*
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Release the static build and macOS package
+      - name: 👷📦 Release static builds & macOS pkg
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          generate_release_notes: true
+          files: |
+            ./munki-pkg-workspace/build/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
