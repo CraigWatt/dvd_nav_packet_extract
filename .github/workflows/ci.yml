@@ -71,14 +71,16 @@ jobs:
           fi
           cd local_libs/libdvdnav
           autoreconf -i
-          ./configure --prefix=$(pwd) \
-            --with-dvdread-libs=$(pwd)/../libdvdread/.libs \
-            --with-dvdread-includes=$(pwd)/../libdvdread/src \
-            CFLAGS="$DVDREAD_CFLAGS" LDFLAGS="$DVDREAD_LIBS"
-          make
+          ./configure --prefix=$(pwd) CFLAGS="$DVDREAD_CFLAGS" LDFLAGS="$DVDREAD_LIBS"
+          make || { echo "Build failed"; exit 1; }
           cd ../../
           
           ls -la local_libs/libdvdnav/.libs || { echo "libdvdnav build failed or .libs directory missing"; exit 1; }
+
+      # Output config.log if there's a failure
+      - name: Output config.log for debugging
+        if: failure()
+        run: cat local_libs/libdvdnav/config.log
 
       # Build the actual dvdnavtex binary
       - name: Build dvdnavtex binary
