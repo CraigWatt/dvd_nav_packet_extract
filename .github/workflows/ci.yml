@@ -69,18 +69,17 @@ jobs:
             git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
           fi
 
-          # Apply necessary modifications to configure.ac
           cd local_libs/libdvdnav
-          
+
           # Replace obsolete macro AC_PROG_CC_C99 with AC_PROG_CC
           sed -i '' 's/AC_PROG_CC_C99/AC_PROG_CC/g' configure.ac
-          
+
           # Run autoupdate to update obsolete macros
           autoupdate || true
-          
+
           # Regenerate configure script
           autoreconf -i
-          
+
           # Configure and build
           ./configure --prefix=$(pwd)
           make
@@ -114,11 +113,13 @@ jobs:
         uses: actions/checkout@v3.3.0
 
       # Ensure Homebrew is installed
-      - name: ❓ Check for Homebrew
-        run: brew -v
+      - name: Install Homebrew and update
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+          brew update
 
       # Install required packages
-      - name: 🔨 Install xmlstarlet and python
+      - name: Install xmlstarlet and python
         run: |
           brew install xmlstarlet python
 
@@ -140,10 +141,29 @@ jobs:
             echo "dvdnavtex binary found after cache retrieval!"
           fi
 
+      # Verify munki-pkg-workspace and build-info.plist
+      - name: Verify munki-pkg-workspace and build-info.plist
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing contents of current directory:"
+          ls -la
+          if [ ! -d "munki-pkg-workspace" ]; then
+            echo "munki-pkg-workspace directory not found!"
+            exit 1
+          else
+            echo "munki-pkg-workspace directory found."
+          fi
+          if [ ! -f "munki-pkg-workspace/build-info.plist" ]; then
+            echo "build-info.plist file not found in munki-pkg-workspace!"
+            exit 1
+          else
+            echo "build-info.plist found."
+          fi
+
       # Update build-info.plist from tag
       - name: ✍️ Update version string in build-info.plist from tag
         run: |
-          xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
+          xmlstarlet ed --inplace -u "/plist/dict/string[preceding-sibling::key[1]='version']" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
 
       # Copy binary to payload for packaging
       - name: 🫳 Position application to payload
