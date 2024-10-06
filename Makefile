@@ -23,7 +23,9 @@ check_libdvdnav:
 		echo "libdvdnav is missing, cloning from repository..."; \
 		git clone $(LIBDVDNAV_REPO) $(LOCAL_LIBS)/libdvdnav; \
 	fi
-	@cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && ./configure && make || { echo "Failed to build libdvdnav"; exit 1; }
+	@cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && \
+	export PKG_CONFIG_PATH=$(shell pwd)/../libdvdread/build/lib/pkgconfig && \
+	./configure && make || { echo "Failed to build libdvdnav"; exit 1; }
 
 # Clone and build libdvdcss
 .PHONY: check_libdvdcss
