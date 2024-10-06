@@ -69,19 +69,39 @@ jobs:
           export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/lib/pkgconfig
           export DYLD_LIBRARY_PATH=$(pwd)/local_libs/libdvdread/lib
 
+          # Clone libdvdnav if it doesn't exist
           if [ ! -d local_libs/libdvdnav ]; then
             git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
           fi
 
+          # Clean up old artifacts if any
           cd local_libs/libdvdnav
-          autoupdate || true  # Run autoupdate to handle obsolete macros
-          autoreconf -i  # Reconfigure the build system
-          ./configure --prefix=$(pwd)  # Configure build with prefix
-          make V=1  # Verbose build to capture more logs
-          make install  # Install the library
+          make distclean || true
+
+          # Run autoupdate to update obsolete macros
+          autoupdate || true  # Log any warnings during the process
+
+          # Reconfigure the build system
+          autoreconf -i  # Re-generate configure script with latest autoconf tools
+
+          # Debug the configure file to locate any issues around the error line
+          head -n 200 configure  # Output the first 200 lines for inspection
+          tail -n 200 configure  # Output the last 200 lines for inspection
+
+          # Configure build with prefix
+          ./configure --prefix=$(pwd) || { echo "Configure step failed"; exit 1; }
+
+          # Verbose build to capture more logs
+          make V=1 || { echo "Make step failed"; exit 1; }
+
+          # Install the library
+          make install || { echo "Install step failed"; exit 1; }
+
           cd ../../
 
+          # Check if the library was successfully built and installed
           ls -la local_libs/libdvdnav/lib || { echo "libdvdnav build failed or lib directory missing"; exit 1; }
+
 
       # Build the dvdnavtex binary
       - name: Build dvdnavtex binary
