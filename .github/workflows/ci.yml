@@ -71,7 +71,10 @@ jobs:
           fi
           cd local_libs/libdvdnav
           autoreconf -i
-          ./configure --prefix=$(pwd) --with-dvdread-libs=$(pwd)/../libdvdread/.libs --with-dvdread-includes=$(pwd)/../libdvdread/src
+          ./configure --prefix=$(pwd) \
+            --with-dvdread-libs=$(pwd)/../libdvdread/.libs \
+            --with-dvdread-includes=$(pwd)/../libdvdread/src \
+            CFLAGS="$DVDREAD_CFLAGS" LDFLAGS="$DVDREAD_LIBS"
           make
           cd ../../
           
