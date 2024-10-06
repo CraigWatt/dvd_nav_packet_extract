@@ -141,6 +141,28 @@ jobs:
             echo "dvdnavtex binary found after cache retrieval!"
           fi
 
+      # Generate munki-pkg-workspace and build-info.plist
+      - name: Generate munki-pkg-workspace and build-info.plist
+        run: |
+          echo "Creating munki-pkg-workspace directory..."
+          mkdir -p munki-pkg-workspace/payload/usr/local/bin
+
+          echo "Creating build-info.plist..."
+          cat << EOF > munki-pkg-workspace/build-info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"
+          "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>identifier</key>
+              <string>com.example.dvdnavtex</string>
+              <key>version</key>
+              <string>1.0.0</string>
+              <!-- Add other keys as needed -->
+          </dict>
+          </plist>
+          EOF
+
       # Verify munki-pkg-workspace and build-info.plist
       - name: Verify munki-pkg-workspace and build-info.plist
         run: |
@@ -168,7 +190,6 @@ jobs:
       # Copy binary to payload for packaging
       - name: 🫳 Position application to payload
         run: |
-          mkdir -p munki-pkg-workspace/payload/usr/local/bin
           cp dvdnavtex munki-pkg-workspace/payload/usr/local/bin/
 
       # Run munkipkg for packaging
