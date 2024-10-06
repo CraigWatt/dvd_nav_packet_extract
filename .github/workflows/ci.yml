@@ -154,38 +154,35 @@ jobs:
           "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
+              <key>distribution_style</key>
+              <false/>
               <key>identifier</key>
               <string>com.example.dvdnavtex</string>
+              <key>install_location</key>
+              <string>/</string>
+              <key>name</key>
+              <string>dvdnavtex-\${version}.pkg</string>
+              <key>ownership</key>
+              <string>recommended</string>
+              <key>postinstall_action</key>
+              <string>none</string>
+              <key>suppress_bundle_relocation</key>
+              <true/>
               <key>version</key>
               <string>1.0.0</string>
-              <!-- Add other keys as needed -->
           </dict>
           </plist>
           EOF
 
-      # Verify munki-pkg-workspace and build-info.plist
-      - name: Verify munki-pkg-workspace and build-info.plist
+      # Update version and name in build-info.plist from tag
+      - name: ✍️ Update version and name in build-info.plist from tag
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Listing contents of current directory:"
-          ls -la
-          if [ ! -d "munki-pkg-workspace" ]; then
-            echo "munki-pkg-workspace directory not found!"
-            exit 1
-          else
-            echo "munki-pkg-workspace directory found."
-          fi
-          if [ ! -f "munki-pkg-workspace/build-info.plist" ]; then
-            echo "build-info.plist file not found in munki-pkg-workspace!"
-            exit 1
-          else
-            echo "build-info.plist found."
-          fi
-
-      # Update build-info.plist from tag
-      - name: ✍️ Update version string in build-info.plist from tag
-        run: |
-          xmlstarlet ed --inplace -u "/plist/dict/string[preceding-sibling::key[1]='version']" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
+          xmlstarlet ed --inplace \
+            -u "/plist/dict/string[preceding-sibling::key[1]='version']" \
+            -v "${GITHUB_REF_NAME}" \
+            -u "/plist/dict/string[preceding-sibling::key[1]='name']" \
+            -v "dvdnavtex-${GITHUB_REF_NAME}.pkg" \
+            munki-pkg-workspace/build-info.plist
 
       # Copy binary to payload for packaging
       - name: 🫳 Position application to payload
@@ -206,6 +203,7 @@ jobs:
           path: |
             ./munki-pkg-workspace/build/*
           key: ${{ github.sha }}
+
 
   release:
     name: 📦 Release
