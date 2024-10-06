@@ -65,6 +65,7 @@ jobs:
           export PKG_CONFIG_PATH=$(pwd)/local_libs/libdvdread/.libs/pkgconfig
           export DVDREAD_CFLAGS="-I$(pwd)/local_libs/libdvdread/src"
           export DVDREAD_LIBS="-L$(pwd)/local_libs/libdvdread/.libs -ldvdread"
+          export DYLD_LIBRARY_PATH=$(pwd)/local_libs/libdvdread/.libs
 
           if [ ! -d local_libs/libdvdnav ]; then
             git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
