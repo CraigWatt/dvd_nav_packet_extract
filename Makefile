@@ -36,7 +36,7 @@ check_libdvdread:
 	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdread \
 	--with-libdvdcss-lib=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/lib \
 	--with-libdvdcss-includes=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/include \
-	&& make || { echo "Failed to build libdvdread"; exit 1; }
+	&& make && make install || { echo "Failed to build libdvdread"; exit 1; }
 
 # Clone and build libdvdnav
 .PHONY: check_libdvdnav
@@ -45,22 +45,21 @@ check_libdvdnav:
 		echo "libdvdnav is missing, cloning from repository..."; \
 		git clone $(LIBDVDNAV_REPO) $(LOCAL_LIBS)/libdvdnav; \
 	fi
-	@cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && \
-	PKG_CONFIG_PATH=$(shell pwd)/../libdvdread/.libs/pkgconfig \
-	CFLAGS="-I$(shell pwd)/../libdvdread/src" \
-	LDFLAGS="-L$(shell pwd)/../libdvdread/.libs" \
-	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdnav && make || { echo "Failed to build libdvdnav"; exit 1; }
+	@export PKG_CONFIG_PATH=$(shell pwd)/$(LOCAL_LIBS)/libdvdread/lib/pkgconfig; \
+	export DYLD_LIBRARY_PATH=$(shell pwd)/$(LOCAL_LIBS)/libdvdread/lib; \
+	cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && \
+	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdnav && make && make install || { echo "Failed to build libdvdnav"; exit 1; }
 
 # Check all libraries
 .PHONY: check_libraries
-check_libraries: check_libdvdnav check_libdvdcss check_libdvdread
+check_libraries: check_libdvdcss check_libdvdread check_libdvdnav
 
 # Clean the build
 .PHONY: clean
 clean:
 	@echo "Cleaning up..."
 	@rm -f $(TARGET)
-	@rm -rf local_libs
+	@rm -rf $(LOCAL_LIBS)
 
 # Build the project
 .PHONY: build
@@ -75,13 +74,12 @@ build: check_tools check_libraries
 	fi
 	@echo "Compiling with flags and linking..."
 	@{ clang -g \
-	      -I./local_libs/libdvdnav/src \
-	      -I./local_libs/libdvdnav/src/dvdnav \
-	      -I./local_libs/libdvdread/src \
+	      -I./local_libs/libdvdnav/include/dvdnav \
+	      -I./local_libs/libdvdread/include/dvdread \
 	      -I./local_libs/libdvdcss/include \
-	      -L./local_libs/libdvdnav/.libs \
+	      -L./local_libs/libdvdnav/lib \
 	      -L./local_libs/libdvdcss/lib \
-	      -L./local_libs/libdvdread/.libs \
+	      -L./local_libs/libdvdread/lib \
 	      -ldvdnav -ldvdcss -ldvdread -o $(TARGET) extractor.c; } || { echo "Compilation failed"; exit 1; }
 
 # Run the program
@@ -89,7 +87,7 @@ build: check_tools check_libraries
 run:
 	@read -p "Enter path to VOB file: " vob_path; \
 	echo "Setting DYLD_LIBRARY_PATH..."; \
-	export DYLD_LIBRARY_PATH=$(LOCAL_LIBS)/libdvdnav/.libs:$(LOCAL_LIBS)/libdvdcss/lib:$(LOCAL_LIBS)/libdvdread/.libs; \
+	export DYLD_LIBRARY_PATH=$(LOCAL_LIBS)/libdvdnav/lib:$(LOCAL_LIBS)/libdvdcss/lib:$(LOCAL_LIBS)/libdvdread/lib; \
 	echo "Running the program with path: $$vob_path"; \
 	./$(TARGET) "$$vob_path"
 
