@@ -74,23 +74,23 @@ jobs:
           fi
 
           cd local_libs/libdvdnav
-          sed -i '' 's/AC_PROG_CC_C99/AC_PROG_CC/g' configure.ac  # Fix for the deprecated macro
-          autoupdate || true  # Update configure.ac
+          autoupdate || true  # Run autoupdate to handle obsolete macros
           autoreconf -i  # Reconfigure the build system
-          ./configure --prefix=$(pwd)
-          make V=1
-          make install
+          ./configure --prefix=$(pwd)  # Configure build with prefix
+          make V=1  # Verbose build to capture more logs
+          make install  # Install the library
           cd ../../
 
           ls -la local_libs/libdvdnav/lib || { echo "libdvdnav build failed or lib directory missing"; exit 1; }
 
-      # Build the actual dvdnavtex binary
+      # Build the dvdnavtex binary
       - name: Build dvdnavtex binary
         run: |
-          make build
-
+          make build  # Trigger the makefile build process
+          
           # Ensure the binary exists
           ls -la dvdnavtex || { echo "dvdnavtex binary not found!"; exit 1; }
+
 
       # Cache the build output
       - name: 💭 Cache application
