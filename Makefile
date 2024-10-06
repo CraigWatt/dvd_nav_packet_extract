@@ -46,9 +46,9 @@ check_libdvdnav:
 		git clone $(LIBDVDNAV_REPO) $(LOCAL_LIBS)/libdvdnav; \
 	fi
 	@cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && \
-	PKG_CONFIG_PATH=$(shell pwd)/../libdvdread/build/lib/pkgconfig \
-	DVDREAD_CFLAGS="-I$(shell pwd)/../libdvdread/src" \
-	DVDREAD_LIBS="-L$(shell pwd)/../libdvdread/.libs -ldvdread" \
+	PKG_CONFIG_PATH=$(shell pwd)/../libdvdread/.libs/pkgconfig \
+	CFLAGS="-I$(shell pwd)/../libdvdread/src" \
+	LDFLAGS="-L$(shell pwd)/../libdvdread/.libs" \
 	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdnav && make || { echo "Failed to build libdvdnav"; exit 1; }
 
 # Check all libraries
