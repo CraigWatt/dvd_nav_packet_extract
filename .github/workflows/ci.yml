@@ -72,14 +72,17 @@ jobs:
           if [ ! -d local_libs/libdvdnav ]; then
             git clone https://code.videolan.org/videolan/libdvdnav.git local_libs/libdvdnav
           fi
+
           cd local_libs/libdvdnav
+          autoupdate || true # Modernize the configure.ac
           autoreconf -i
           ./configure --prefix=$(pwd)
-          make
+          make V=1
           make install
           cd ../../
 
           ls -la local_libs/libdvdnav/lib || { echo "libdvdnav build failed or lib directory missing"; exit 1; }
+
 
       # Build the actual dvdnavtex binary
       - name: Build dvdnavtex binary
