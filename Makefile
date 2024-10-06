@@ -16,17 +16,6 @@ check_tools:
 	@command -v git >/dev/null 2>&1 || { echo "git is required but not installed. Aborting."; exit 1; }
 	@command -v pkg-config >/dev/null 2>&1 || { echo "pkg-config is required but not installed. Aborting."; exit 1; }
 
-# Clone and build libdvdnav
-.PHONY: check_libdvdnav
-check_libdvdnav:
-	@if [ ! -d $(LOCAL_LIBS)/libdvdnav ]; then \
-		echo "libdvdnav is missing, cloning from repository..."; \
-		git clone $(LIBDVDNAV_REPO) $(LOCAL_LIBS)/libdvdnav; \
-	fi
-	@cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && \
-	export PKG_CONFIG_PATH=$(shell pwd)/../libdvdread/build/lib/pkgconfig && \
-	./configure && make || { echo "Failed to build libdvdnav"; exit 1; }
-
 # Clone and build libdvdcss
 .PHONY: check_libdvdcss
 check_libdvdcss:
@@ -48,6 +37,19 @@ check_libdvdread:
 	--with-libdvdcss-lib=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/lib \
 	--with-libdvdcss-includes=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/include \
 	&& make || { echo "Failed to build libdvdread"; exit 1; }
+
+# Clone and build libdvdnav
+.PHONY: check_libdvdnav
+check_libdvdnav:
+	@if [ ! -d $(LOCAL_LIBS)/libdvdnav ]; then \
+		echo "libdvdnav is missing, cloning from repository..."; \
+		git clone $(LIBDVDNAV_REPO) $(LOCAL_LIBS)/libdvdnav; \
+	fi
+	@cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && \
+	PKG_CONFIG_PATH=$(shell pwd)/../libdvdread/build/lib/pkgconfig \
+	DVDREAD_CFLAGS="-I$(shell pwd)/../libdvdread/src" \
+	DVDREAD_LIBS="-L$(shell pwd)/../libdvdread/.libs -ldvdread" \
+	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdnav && make || { echo "Failed to build libdvdnav"; exit 1; }
 
 # Check all libraries
 .PHONY: check_libraries

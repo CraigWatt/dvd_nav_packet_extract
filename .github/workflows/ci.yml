@@ -85,13 +85,6 @@ jobs:
           # Ensure the binary exists
           ls -la dvdnavtex || { echo "dvdnavtex binary not found!"; exit 1; }
 
-      # Debug the build output to verify the binary location
-      - name: Debug List files in project directory
-        run: ls -la
-
-      - name: Debug List files in local_libs directory
-        run: ls -la local_libs
-
       # Cache the build output
       - name: 💭 Cache application
         uses: actions/cache@v3.2.2
@@ -119,7 +112,7 @@ jobs:
       run: |
         brew install xmlstarlet python
 
-    # Fetch application cache (verify if binary is retrieved)
+    # Fetch application cache
     - name: 🤌💭 Fetch application cache
       uses: actions/cache@v3.2.2
       id: dvdnavtex-build
@@ -127,7 +120,7 @@ jobs:
         path: ./dvdnavtex
         key: ${{ github.sha }}
 
-    # Check if cache fetched the dvdnavtex binary correctly
+    # Verify binary fetched from cache
     - name: Verify binary fetched from cache
       run: |
         if [ ! -f ./dvdnavtex ]; then
