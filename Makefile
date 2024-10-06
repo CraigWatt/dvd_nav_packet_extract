@@ -47,7 +47,10 @@ check_libdvdnav:
 	fi
 	@export PKG_CONFIG_PATH=$(shell pwd)/$(LOCAL_LIBS)/libdvdread/lib/pkgconfig; \
 	export DYLD_LIBRARY_PATH=$(shell pwd)/$(LOCAL_LIBS)/libdvdread/lib; \
-	cd $(LOCAL_LIBS)/libdvdnav && autoreconf -i && \
+	cd $(LOCAL_LIBS)/libdvdnav && \
+	sed -i '' 's/AC_PROG_CC_C99/AC_PROG_CC/g' configure.ac && \
+	autoupdate || true && \
+	autoreconf -i && \
 	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdnav && make && make install || { echo "Failed to build libdvdnav"; exit 1; }
 
 # Check all libraries
@@ -74,8 +77,8 @@ build: check_tools check_libraries
 	fi
 	@echo "Compiling with flags and linking..."
 	@{ clang -g \
-	      -I./local_libs/libdvdnav/include/dvdnav \
-	      -I./local_libs/libdvdread/include/dvdread \
+	      -I./local_libs/libdvdnav/include \
+	      -I./local_libs/libdvdread/include \
 	      -I./local_libs/libdvdcss/include \
 	      -L./local_libs/libdvdnav/lib \
 	      -L./local_libs/libdvdcss/lib \
