@@ -14,7 +14,7 @@ check_tools:
 	@command -v automake >/dev/null 2>&1 || { echo "Automake is required but not installed. Install via Homebrew: brew install automake"; exit 1; }
 	@command -v clang >/dev/null 2>&1 || { echo "clang is required but not installed. Aborting."; exit 1; }
 	@command -v git >/dev/null 2>&1 || { echo "git is required but not installed. Aborting."; exit 1; }
-	@command -v pkg-config >/dev/null 2>&1 || { echo "pkg-config is required but not installed. Aborting."; exit 1; }
+	@command -v pkg-config >/dev/null 2>&1 || { echo "pkg-config is required but not installed. Install via Homebrew: brew install pkg-config"; exit 1; }
 
 # Clone and build libdvdcss
 .PHONY: check_libdvdcss
@@ -23,7 +23,10 @@ check_libdvdcss:
 		echo "libdvdcss is missing, cloning from repository..."; \
 		git clone $(LIBDVDCSS_REPO) $(LOCAL_LIBS)/libdvdcss; \
 	fi
-	@cd $(LOCAL_LIBS)/libdvdcss && autoreconf -i && ./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss && make && make install || { echo "Failed to build libdvdcss"; exit 1; }
+	@cd $(LOCAL_LIBS)/libdvdcss && autoreconf -i && \
+	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss \
+	--disable-shared --enable-static && \
+	make && make install || { echo "Failed to build libdvdcss"; exit 1; }
 
 # Clone and build libdvdread
 .PHONY: check_libdvdread
@@ -34,9 +37,10 @@ check_libdvdread:
 	fi
 	@cd $(LOCAL_LIBS)/libdvdread && autoreconf -i && \
 	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdread \
-	--with-libdvdcss-lib=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/lib \
 	--with-libdvdcss-includes=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/include \
-	&& make && make install || { echo "Failed to build libdvdread"; exit 1; }
+	--with-libdvdcss-lib=$(shell pwd)/$(LOCAL_LIBS)/libdvdcss/lib \
+	--disable-shared --enable-static && \
+	make && make install || { echo "Failed to build libdvdread"; exit 1; }
 
 # Clone and build libdvdnav
 .PHONY: check_libdvdnav
@@ -51,7 +55,9 @@ check_libdvdnav:
 	sed -i '' 's/AC_PROG_CC_C99/AC_PROG_CC/g' configure.ac && \
 	autoupdate || true && \
 	autoreconf -i && \
-	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdnav && make && make install || { echo "Failed to build libdvdnav"; exit 1; }
+	./configure --prefix=$(shell pwd)/$(LOCAL_LIBS)/libdvdnav \
+	--disable-shared --enable-static && \
+	make && make install || { echo "Failed to build libdvdnav"; exit 1; }
 
 # Check all libraries
 .PHONY: check_libraries
@@ -68,7 +74,6 @@ clean:
 .PHONY: build
 build: check_tools check_libraries
 	@echo "Building the project..."
-	@echo "Checking if extractor.c exists..."
 	@if [ -f extractor.c ]; then \
 		echo "extractor.c found. Proceeding to compile..."; \
 	else \
@@ -80,17 +85,16 @@ build: check_tools check_libraries
 	      -I./local_libs/libdvdnav/include \
 	      -I./local_libs/libdvdread/include \
 	      -I./local_libs/libdvdcss/include \
-	      -L./local_libs/libdvdnav/lib \
-	      -L./local_libs/libdvdcss/lib \
-	      -L./local_libs/libdvdread/lib \
-	      -ldvdnav -ldvdcss -ldvdread -o $(TARGET) extractor.c; } || { echo "Compilation failed"; exit 1; }
+	      extractor.c \
+	      ./local_libs/libdvdnav/lib/libdvdnav.a \
+	      ./local_libs/libdvdread/lib/libdvdread.a \
+	      ./local_libs/libdvdcss/lib/libdvdcss.a \
+	      -o $(TARGET); } || { echo "Compilation failed"; exit 1; }
 
 # Run the program
 .PHONY: run
 run:
 	@read -p "Enter path to VOB file: " vob_path; \
-	echo "Setting DYLD_LIBRARY_PATH..."; \
-	export DYLD_LIBRARY_PATH=$(LOCAL_LIBS)/libdvdnav/lib:$(LOCAL_LIBS)/libdvdcss/lib:$(LOCAL_LIBS)/libdvdread/lib; \
 	echo "Running the program with path: $$vob_path"; \
 	./$(TARGET) "$$vob_path"
 
