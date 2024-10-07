@@ -126,7 +126,7 @@ jobs:
       - name: Run dvdnavtex tests
         run: |
           cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
-          /Users/runner/work/dvd_nav_packet_extract/dvd_nav_packet_extract/dvdnavtex --test VTS_01_1.VOB
+          /Users/runner/work/dvd_nav_packet_extract/dvd_nav_packet_extract/dvdnavtex VTS_01_1.VOB
           if [ $? -eq 0 ]; then
             echo "✅ dvdnavtex test passed"
           else
