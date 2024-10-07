@@ -74,8 +74,8 @@ jobs:
           make install
           cd ../../
 
-      # Build libdvdread with libdvdcss
-      - name: Build libdvdread
+      # Build libdvdread with libdvdcss support
+      - name: Build libdvdread with libdvdcss support
         run: |
           if [ ! -d local_libs/libdvdread ]; then
             git clone https://code.videolan.org/videolan/libdvdread.git local_libs/libdvdread
@@ -129,11 +129,8 @@ jobs:
       - name: Run dvdnavtex tests
         run: |
           ls -la
-          ls -lrth
-          tree
           cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
-          # Run dvdnavtex from the root directory
-          ../../../dvdnavtex --test VTS_01_1.VOB
+          ../../dvdnavtex --test VTS_01_1.VOB
 
 
       # Cache the build output
