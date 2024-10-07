@@ -28,6 +28,14 @@ jobs:
           xcode-select --install || true
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
+      # Clone bbb_dvd_creator.sh repository and run the script
+      - name: Clone bbb_dvd_creator.sh repository
+        run: git clone https://github.com/CraigWatt/dvd_nav_packet_extract
+
+      - name: Run bbb_dvd_creator.sh script
+        working-directory: ./bbb_dvd_creator.sh
+        run: ./bbb_dvd_creator.sh -q bbb_sunflower_1080p_30fps_normal_transcoded.mp4
+
       # Set up dependencies on macOS
       - name: Set up dependencies on macOS
         run: |
@@ -97,6 +105,13 @@ jobs:
 
           # Ensure the binary exists
           ls -la dvdnavtex || { echo "dvdnavtex binary not found!"; exit 1; }
+      
+      # Run dvdnavtex tests on the generated DVD structure
+      - name: Run dvdnavtex tests
+        run: |
+          cd ./bbb_dvd_creator.sh/custom_dvd/VIDEO_TS
+          # Assuming dvdnavtex testing command:
+          dvdnavtex --test VTS_01_1.VOB
 
       # Cache the build output
       - name: 💭 Cache application
