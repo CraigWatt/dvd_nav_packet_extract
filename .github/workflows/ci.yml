@@ -30,7 +30,7 @@ jobs:
 
       # Clone bbb_dvd_creator.sh repository and run the script
       - name: Clone bbb_dvd_creator.sh repository
-        run: git clone https://github.com/CraigWatt/dvd_nav_packet_extract
+        run: git clone https://github.com/CraigWatt/bbb_dvd_creator
 
       - name: Run bbb_dvd_creator.sh script
         working-directory: ./bbb_dvd_creator.sh
