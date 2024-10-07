@@ -1,20 +1,11 @@
 name: Build, Test, and Package dvd_nav_packet_extract
 
-#POST V1.*.* SWITCH BACK ON
-# on:
-#   push:
-#     tags:
-#       - "v*.*.*"
-#     branches:
-#       - main
-#   pull_request:
-#     branches:
-#       - main
-
 on:
   push:
     branches:
       - "**"   # Triggers on all branches
+    tags:
+      - "v*.*.*"   # Triggers on tags matching the version pattern
   pull_request:
     branches:
       - "**"   # Triggers on all pull requests
@@ -137,9 +128,6 @@ jobs:
           ls -la
           cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
           /Users/runner/work/dvd_nav_packet_extract/dvd_nav_packet_extract/dvdnavtex VTS_01_1.VOB
-        
-        
-
 
       # Cache the build output
       - name: 💭 Cache application
@@ -252,29 +240,30 @@ jobs:
           key: ${{ github.sha }}
 
   release:
-    name: 📦 Release
-    needs: [apple-pkg]
-    runs-on: macos-latest
+      name: 📦 Release
+      needs: [apple-pkg]
+      runs-on: macos-latest
+      if: startsWith(github.ref, 'refs/tags/')  # Only run if this is a tag push
 
-    steps:
-      - name: ⬇️ Checkout repo
-        uses: actions/checkout@v3
+      steps:
+        - name: ⬇️ Checkout repo
+          uses: actions/checkout@v3
 
-      # Fetch macOS .pkg cache
-      - name: 🤌💭 Fetch macOS .pkg Cache
-        uses: actions/cache@v3
-        id: macos-pkg
-        with:
-          path: |
-            ./munki-pkg-workspace/build/*
-          key: ${{ github.sha }}
+        # Fetch macOS .pkg cache
+        - name: 🤌💭 Fetch macOS .pkg Cache
+          uses: actions/cache@v3
+          id: macos-pkg
+          with:
+            path: |
+              ./munki-pkg-workspace/build/*
+            key: ${{ github.sha }}
 
-      # Release the static build and macOS package
-      - name: 👷📦 Release static builds & macOS pkg
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: true
-          files: |
-            ./munki-pkg-workspace/build/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Release the static build and macOS package
+        - name: 👷📦 Release static builds & macOS pkg
+          uses: softprops/action-gh-release@v1
+          with:
+            generate_release_notes: true
+            files: |
+              ./munki-pkg-workspace/build/*
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
