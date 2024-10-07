@@ -37,10 +37,10 @@ jobs:
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
           brew update
 
-      # Install ffmpeg
-      - name: Install ffmpeg
+      # Install ffmpeg and dvdauthor
+      - name: Install ffmpeg and dvdauthor
         run: |
-          brew install ffmpeg
+          brew install ffmpeg dvdauthor
 
       # Ensure Xcode command line tools are installed
       - name: Install Xcode Command Line Tools
