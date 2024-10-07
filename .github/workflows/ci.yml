@@ -125,6 +125,13 @@ jobs:
           # Ensure the binary exists
           ls -la dvdnavtex || { echo "dvdnavtex binary not found!"; exit 1; }
       
+      - name: Check paths
+        run: |
+          pwd
+          ls -la
+          cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
+          ls -la
+
       # Run dvdnavtex tests on the generated DVD structure
       - name: Run dvdnavtex tests
         run: |
