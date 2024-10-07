@@ -49,15 +49,11 @@ jobs:
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
       # Clone bbb_dvd_creator.sh repository and run the script
-      - name: Clone bbb_dvd_creator.sh repository
+      - name: Clone and run bbb_dvd_creator.sh repository
         run: |
           git clone https://github.com/CraigWatt/bbb_dvd_creator
           cd bbb_dvd_creator
           ./bbb_dvd_creator.sh -q bbb_sunflower_1080p_30fps_normal_transcoded.mp4
-
-      - name: Run bbb_dvd_creator.sh script
-        working-directory: ./bbb_dvd_creator.sh
-        run: ./bbb_dvd_creator.sh -q bbb_sunflower_1080p_30fps_normal_transcoded.mp4
 
       # Set up dependencies on macOS
       - name: Set up dependencies on macOS
