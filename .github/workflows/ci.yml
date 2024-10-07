@@ -132,12 +132,12 @@ jobs:
           cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
           ls -la
 
-      # Run dvdnavtex tests on the generated DVD structure
       - name: Run dvdnavtex tests
         run: |
           ls -la
           cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
-          ../../dvdnavtex --test VTS_01_1.VOB
+          /Users/runner/work/dvd_nav_packet_extract/dvd_nav_packet_extract/dvdnavtex --test VTS_01_1.VOB
+        
 
 
       # Cache the build output
