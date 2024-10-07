@@ -132,8 +132,8 @@ jobs:
           ls -lrth
           tree
           cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
-          # Assuming dvdnavtex testing command:
-          dvdnavtex --test VTS_01_1.VOB
+          # Assuming the correct path to dvdnavtex:
+          ../../../../dvdnavtex --test VTS_01_1.VOB
 
       # Cache the build output
       - name: 💭 Cache application
