@@ -38,9 +38,9 @@ jobs:
           brew update
 
       # Install ffmpeg and dvdauthor
-      - name: Install ffmpeg and dvdauthor
+      - name: Install ffmpeg, dvdauthor and tree
         run: |
-          brew install ffmpeg dvdauthor
+          brew install ffmpeg dvdauthor tree
 
       # Ensure Xcode command line tools are installed
       - name: Install Xcode Command Line Tools
