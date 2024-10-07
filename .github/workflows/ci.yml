@@ -38,7 +38,7 @@ jobs:
           brew update
 
       # Install ffmpeg and dvdauthor
-      - name: Install ffmpeg, dvdauthor and tree
+      - name: Install ffmpeg, dvdauthor, and tree
         run: |
           brew install ffmpeg dvdauthor tree
 
@@ -48,8 +48,8 @@ jobs:
           xcode-select --install || true
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
-      # Clone bbb_dvd_creator.sh repository and run the script
-      - name: Clone and run bbb_dvd_creator.sh repository
+      # Clone bbb_dvd_creator repository and run the script
+      - name: Clone and run bbb_dvd_creator repository
         run: |
           git clone https://github.com/CraigWatt/bbb_dvd_creator
           cd bbb_dvd_creator
@@ -131,7 +131,7 @@ jobs:
           ls -la
           ls -lrth
           tree
-          cd ./bbb_dvd_creator.sh/custom_dvd/VIDEO_TS
+          cd ./bbb_dvd_creator/custom_dvd/VIDEO_TS
           # Assuming dvdnavtex testing command:
           dvdnavtex --test VTS_01_1.VOB
 
