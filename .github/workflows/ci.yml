@@ -1,14 +1,23 @@
 name: Build, Test, and Package dvd_nav_packet_extract
 
+#POST V1.*.* SWITCH BACK ON
+# on:
+#   push:
+#     tags:
+#       - "v*.*.*"
+#     branches:
+#       - main
+#   pull_request:
+#     branches:
+#       - main
+
 on:
   push:
-    tags:
-      - "v*.*.*"
     branches:
-      - main
+      - "**"   # Triggers on all branches
   pull_request:
     branches:
-      - main
+      - "**"   # Triggers on all pull requests
 
 permissions:
   contents: write
@@ -30,7 +39,10 @@ jobs:
 
       # Clone bbb_dvd_creator.sh repository and run the script
       - name: Clone bbb_dvd_creator.sh repository
-        run: git clone https://github.com/CraigWatt/bbb_dvd_creator
+        run: |
+          git clone https://github.com/CraigWatt/bbb_dvd_creator
+          cd bbb_dvd_creator
+          ./bbb_dvd_creator.sh -q bbb_sunflower_1080p_30fps_normal_transcoded.mp4
 
       - name: Run bbb_dvd_creator.sh script
         working-directory: ./bbb_dvd_creator.sh
