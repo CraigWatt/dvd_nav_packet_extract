@@ -1,0 +1,36 @@
+name: Build and Test dvd_nav_packet_extract on Windows
+
+on:
+  push:
+    branches:
+      - "**"   # Triggers on all branches
+    tags:
+      - "v*.*.*"   # Triggers on tags matching the version pattern
+  pull_request:
+    branches:
+      - "**"   # Triggers on all pull requests
+  workflow_dispatch:  # Allows manual dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  windows-build:
+    name: 👷 Build and Test on Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v3
+
+      # Placeholder for build steps
+      - name: Placeholder - Install dependencies and build
+        run: |
+          echo "Building dvd_nav_packet_extract on Windows"
+          # Add Windows-specific build steps here later
+
+      # Placeholder for test steps
+      - name: Placeholder - Run Tests
+        run: |
+          echo "Running tests on Windows"
+          # Add Windows-specific test steps here later
