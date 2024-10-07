@@ -31,6 +31,17 @@ jobs:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v3
 
+      # Install Homebrew and update
+      - name: Install Homebrew and update
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+          brew update
+
+      # Install ffmpeg
+      - name: Install ffmpeg
+        run: |
+          brew install ffmpeg
+
       # Ensure Xcode command line tools are installed
       - name: Install Xcode Command Line Tools
         run: |
