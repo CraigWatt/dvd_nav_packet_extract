@@ -1,12 +1,6 @@
 # DVD Navigation Packet Extractor
 
-Example
-
-find . -type d -name "VIDEO_TS" -exec sh -c 'cd "$(dirname "$1")" && dvdnavtex "$(basename "$1")"' _ {} \;
-
 ## Overview
-
-
 
 **DVD Navigation Packet Extractor** is a powerful command-line tool designed to parse DVD IFO files, extract detailed title and cell information, and pinpoint the exact sectors within VOB files where each title and cell starts. This facilitates efficient extraction and processing of specific DVD content, such as NAV packets, video streams, audio tracks, and subtitles.
 
@@ -53,4 +47,8 @@ Begin by cloning the repository to your local machine:
 ```bash
 git clone https://github.com/yourusername/dvd_nav_packet_extract.git
 cd dvd_nav_packet_extract
+
+usage:
+
+find . -type d -name "VIDEO_TS" -exec sh -c 'cd "$(dirname "$1")" && dvdnavtex "$(basename "$1")"' _ {} \;
 
